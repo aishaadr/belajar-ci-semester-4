@@ -23,13 +23,13 @@
         'name'  => 'alamat',
         'id'    => 'alamat',
         'class' => 'form-control']) ?>
-</div> 
-<div class="col-12"> 
+</div>
+<div class="col-12">
     <?= form_label('Kelurahan', 'kelurahan', ['class' => 'form-label']) ?>
     <?= form_dropdown('kelurahan', [], '', ['id' => 'kelurahan', 'class' => 'form-control']) ?>
 </div>
-<div class="col-12"> 
-    <?= form_label('Layanan', 'layanan', ['class' => 'form-label']) ?> 
+<div class="col-12">
+    <?= form_label('Layanan', 'layanan', ['class' => 'form-label']) ?>
     <?= form_dropdown('layanan', [], '', ['id' => 'layanan', 'class' => 'form-control']) ?>
 </div>
 <div class="col-12">
@@ -41,51 +41,61 @@
         'readonly' => true]) ?>
 </div>
 <div class="col-12">
-    <?= form_submit(
-        'submit',
-        'Buat Pesanan',
-        ['class' => 'btn btn-primary']) ?>
+    <?= form_submit('submit', 'Buat Pesanan', ['class' => 'btn btn-primary']) ?>
 </div>
 
-<?= form_close() ?> 
+<?= form_close() ?>
     </div>
+
     <div class="col-lg-6">
+    <?php
+    $nominalDiskon = $todayDiscount ? $todayDiscount['nominal'] : 0;
+    $subtotalBersih = 0;
+    ?>
     <table class="table">
-  <thead>
-      <tr>
-          <th scope="col">Nama</th>
-          <th scope="col">Harga</th>
-          <th scope="col">Jumlah</th>
-          <th scope="col">Sub Total</th>
-      </tr>
-  </thead>
-  <tbody>
-      <?php 
-      if (!empty($items)) :
-          foreach ($items as $index => $item) :
-      ?>
-              <tr>
-                  <td><?= $item['name'] ?></td>
-                  <td><?= number_to_currency($item['price'], 'IDR') ?></td>
-                  <td><?= $item['qty'] ?></td>
-                  <td><?= number_to_currency($item['price'] * $item['qty'], 'IDR') ?></td>
-              </tr>
-      <?php
-          endforeach;
-      endif;
-      ?>
-      <tr>
-          <td colspan="2"></td>
-          <td>Subtotal</td>
-          <td><?= number_to_currency($total, 'IDR') ?></td>
-      </tr>
-      <tr>
-          <td colspan="2"></td>
-          <td>Total</td>
-          <td><span id="total"><?= number_to_currency($total, 'IDR') ?></span></td>
-      </tr>
-  </tbody>
-</table>
+        <thead>
+            <tr>
+                <th scope="col">Nama</th>
+                <th scope="col">Harga</th>
+                <th scope="col">Jumlah</th>
+                <th scope="col">Sub Total</th>
+            </tr>
+        </thead>
+        <tbody>
+            <?php if (!empty($items)) : foreach ($items as $item) :
+                $harga_asli  = $item['options']['harga_asli'] ?? $item['price'];
+                $harga_final = $harga_asli - $nominalDiskon;
+                $sub         = $harga_final * $item['qty'];
+                $subtotalBersih += $sub;
+            ?>
+                <tr>
+                    <td><?= $item['name'] ?></td>
+                    <td>
+                        <?php if ($todayDiscount) : ?>
+                            <span class="text-danger" style="text-decoration: line-through;">
+                                <?= number_to_currency($harga_asli, 'IDR') ?>
+                            </span><br>
+                            <?= number_to_currency($harga_final, 'IDR') ?>
+                        <?php else : ?>
+                            <?= number_to_currency($harga_asli, 'IDR') ?>
+                        <?php endif; ?>
+                    </td>
+                    <td><?= $item['qty'] ?></td>
+                    <td><?= number_to_currency($sub, 'IDR') ?></td>
+                </tr>
+            <?php endforeach; endif; ?>
+            <tr>
+                <td colspan="2"></td>
+                <td>Subtotal</td>
+                <td><?= number_to_currency($subtotalBersih, 'IDR') ?></td>
+            </tr>
+            <tr>
+                <td colspan="2"></td>
+                <td>Total</td>
+                <td><span id="total"><?= number_to_currency($subtotalBersih, 'IDR') ?></span></td>
+            </tr>
+        </tbody>
+    </table>
     </div>
 </div>
 
@@ -95,65 +105,60 @@
 $(document).ready(function() {
 
     let ongkir = 0;
-let subtotal = <?= $total ?>;
-hitungTotal();
+    let subtotal = <?= $subtotalBersih ?? $total ?>;
+    hitungTotal();
 
-function hitungTotal() {
-    let total = subtotal + ongkir;
+    function hitungTotal() {
+        let total = subtotal + ongkir;
+        $("#ongkir").val(ongkir);
+        $("#total").text(`IDR ${total.toLocaleString('id-ID')}`);
+        $("#total_harga").val(total);
+    }
 
-    $("#ongkir").val(ongkir);
-    $("#total").text(`IDR ${total.toLocaleString('id-ID')}`);
-    $("#total_harga").val(total);
-}
-
-	$('#kelurahan').select2({
-	    placeholder: 'Cari daerah tujuan',
-	    minimumInputLength: 3, 
+    $('#kelurahan').select2({
+        placeholder: 'Cari daerah tujuan',
+        minimumInputLength: 3,
         ajax: {
-    url: '<?= site_url('ajax/destinations') ?>',
-    dataType: 'json',
-    delay: 300,
-    data: function(params) {
-        return {
-            q: params.term
-        };
-    },
-    processResults: function(data) {
-        return data;
-    },
-    cache: true
-}
-	});
+            url: '<?= site_url('ajax/destinations') ?>',
+            dataType: 'json',
+            delay: 300,
+            data: function(params) {
+                return { q: params.term };
+            },
+            processResults: function(data) {
+                return data;
+            },
+            cache: true
+        }
+    });
 
     $("#kelurahan").on('change', function () {
-    let id_kelurahan = $(this).val();
+        let id_kelurahan = $(this).val();
+        $("#layanan").empty();
+        ongkir = 0;
+        hitungTotal();
 
-    $("#layanan").empty();
-    ongkir = 0;
-    hitungTotal(); 
-
-    $.ajax({
-    url: "<?= site_url('ajax/costs') ?>", 
-    dataType: "json",
-    data: {
-        destination: id_kelurahan
-    },
-    success: function (data) { 
-        data.forEach(function (item) {
-            $("#layanan").append(
-                $('<option>', {
-                    value: item.cost,
-                    text: `${item.description} (${item.service}) : estimasi ${item.etd}`
-                })
-            );
+        $.ajax({
+            url: "<?= site_url('ajax/costs') ?>",
+            dataType: "json",
+            data: { destination: id_kelurahan },
+            success: function (data) {
+                data.forEach(function (item) {
+                    $("#layanan").append(
+                        $('<option>', {
+                            value: item.cost,
+                            text: `${item.description} (${item.service}) : estimasi ${item.etd}`
+                        })
+                    );
+                });
+            }
         });
-    }
-});
-});
-$("#layanan").on('change', function() {
-    ongkir = parseInt($(this).val());
-    hitungTotal();
-}); 
+    });
+
+    $("#layanan").on('change', function() {
+        ongkir = parseInt($(this).val());
+        hitungTotal();
+    });
 });
 </script>
 <?= $this->endSection() ?>

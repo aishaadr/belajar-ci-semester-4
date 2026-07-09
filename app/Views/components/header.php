@@ -16,6 +16,17 @@
       </form>
     </div><!-- End Search Bar -->
 
+    <?php
+    helper('number');
+    $discountModel = new \App\Models\DiscountModel();
+    $todayDiscount = $discountModel->where('tanggal', date('Y-m-d'))->first();
+    if ($todayDiscount) :
+    ?>
+      <span class="badge bg-success ms-3">
+        Hari ini ada diskon <?= number_to_currency($todayDiscount['nominal'], 'IDR') ?> per item
+      </span>
+    <?php endif; ?>
+
     <nav class="header-nav ms-auto">
       <ul class="d-flex align-items-center">
 

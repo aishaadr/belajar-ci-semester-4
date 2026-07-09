@@ -12,7 +12,7 @@ $routes->get('login', 'AuthController::login');
 $routes->post('login', 'AuthController::login');
 $routes->get('logout', 'AuthController::logout');
 
-$routes->group('produk', ['filter' => 'auth'], function ($routes) { 
+$routes->group('produk', ['filter' => 'auth'], function ($routes) {
     $routes->get('', 'ProdukController::index');
     $routes->post('', 'ProdukController::create');
     $routes->post('edit/(:any)', 'ProdukController::edit/$1');
@@ -30,6 +30,20 @@ $routes->group('keranjang', ['filter' => 'auth'], function ($routes) {
 
 $routes->get('keranjang', 'TransaksiController::index', ['filter' => 'auth']);
 
+// Diskon — hanya admin
+$routes->group('diskon', ['filter' => 'adminonly'], function ($routes) {
+    $routes->get('', 'DiskonController::index');
+    $routes->post('', 'DiskonController::create');
+    $routes->post('edit/(:any)', 'DiskonController::edit/$1');
+    $routes->get('delete/(:any)', 'DiskonController::delete/$1');
+});
+
+// Pembelian — hanya admin
+$routes->group('pembelian', ['filter' => 'adminonly'], function ($routes) {
+    $routes->get('', 'PembelianController::index');
+    $routes->get('ubah-status/(:any)', 'PembelianController::ubahStatus/$1');
+});
+
 $routes->get('faq', 'Home::faq', ['filter' => 'auth']);
 $routes->get('profile', 'Home::profile', ['filter' => 'auth']);
 $routes->get('contact', 'Home::contact', ['filter' => 'auth']);
@@ -39,11 +53,9 @@ $routes->post('buy', 'TransaksiController::buy', ['filter' => 'auth']);
 
 $routes->get('history', 'TransaksiController::history', ['filter' => 'auth']);
 
-$routes->get('ajax/destinations','TransaksiController::destinations', ['filter' => 'auth']);
-
-$routes->get('ajax/costs','TransaksiController::costs', ['filter' => 'auth']);
+$routes->get('ajax/destinations', 'TransaksiController::destinations', ['filter' => 'auth']);
+$routes->get('ajax/costs', 'TransaksiController::costs', ['filter' => 'auth']);
 
 $routes->resource('api/products', ['controller' => 'Api\ProdukController']);
-
+$routes->resource('api/discounts', ['controller' => 'Api\DiskonController']);
 $routes->get('api/transactions', 'Api\TransaksiController::index');
-
